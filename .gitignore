@@ -1,0 +1,8 @@
+.idea/
+config.py
+__pycache__/
+.DS_Store
+*.py[cod]
+observation_attachments/
+test_files/
+/.spyproject/config/
