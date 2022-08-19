@@ -12,6 +12,7 @@ from datetime import datetime
 from PIL import Image
 from io import BytesIO
 
+JSON_TYPE = 'application/json'
 
 # session object containing functions for making requests, logs in and stores auth headers on __init__
 class MageClient:
@@ -23,27 +24,27 @@ class MageClient:
         self.mage_session = requests.Session()
 
         # set initial headers, this attribute will be modified and re-used
-        self.mage_session.headers = {'accept': 'application/json'}
+        self.mage_session.headers = {'accept': JSON_TYPE}
 
         # this header will be added and removed as needed, used for sending data
-        self.content_type_header = {'Content-type': 'application/json'}
+        self.content_type_header = {'Content-type': JSON_TYPE}
 
         # provide username and password, receive response with auth id
         log_in = self.make_request('/auth/local/signin', 'post', payload=config.credentials)
         auth_info = log_in.response_body
-        device_auth_id = auth_info['user']['authentication']['id']
+        short_lived_token = auth_info['token']
+        self.mage_session.headers['Authorization'] = f'Bearer {short_lived_token}'
 
-        # provide auth id in exchange for API token, add token to headers for future requests
-        auth = self.make_request('/auth/local/authorize', 'post', payload={'uid': device_auth_id})
+        # provide token in exchange for , add token to headers for future requests
+        auth = self.make_request('/auth/token', 'post')
         api_token = auth.response_body['token']
-        self.mage_session.headers.update(Authorization=f'Bearer {api_token}')
+        self.mage_session.headers['Authorization'] = f'Bearer {api_token}'
 
         # get own mage user for verification of auth and later use
         self.own_user = self.get_self().response_body
 
     # framework for API calls
-    def make_request(self, endpoint, method, payload=None,
-                     download_content=False, upload=None):
+    def make_request(self, endpoint, method, payload=None, download_content=False, upload=None):
         # force 1 second wait for rate-limiting
         time.sleep(1)
         # get specific requests attribute from provided method, e.g. requests.get for method='get'
@@ -57,9 +58,7 @@ class MageClient:
         if payload:
             self.mage_session.headers = {**self.mage_session.headers, **self.content_type_header}
 
-        # make request to given endpoint w/ payload and auth headers
         print(f'making request {method} {endpoint}...')
-        print(f'headers = {self.mage_session.headers}\n')
 
         # if files provided, change headers and prepare files param
         if upload:
