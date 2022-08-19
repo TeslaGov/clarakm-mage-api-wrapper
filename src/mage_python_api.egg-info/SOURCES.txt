@@ -1,0 +1,14 @@
+LICENSE
+README.md
+pyproject.toml
+src/clone_latest_weekday_observations.py
+src/clone_observations.py
+src/config.py
+src/export_event_roster.py
+src/import_observations_from_file.py
+src/mage_api.py
+src/mage_python_api.egg-info/PKG-INFO
+src/mage_python_api.egg-info/SOURCES.txt
+src/mage_python_api.egg-info/dependency_links.txt
+src/mage_python_api.egg-info/requires.txt
+src/mage_python_api.egg-info/top_level.txt

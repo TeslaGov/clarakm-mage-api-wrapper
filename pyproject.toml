@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=65.1.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mage-python-api"
+version = "1.0.0"
+description = "A Python wrapper for the MAGE API."
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Tesla Government Developers", email = "developers@teslagovernment.com" }]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+keywords = [ "mobile", "awareness", "GEOINT", "geospatial" ]
+requires-python = ">=3.10.0"
+dependencies = [
+    "numpy>=1.23.2",
+    "pandas>=1.4.3",
+    "Pillow>=9.2.0",
+    "requests>=2.28.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/TeslaGov/mage-python-api"
+
+[tools.setuptools]
+packages = [
+    "mage_api"
+]

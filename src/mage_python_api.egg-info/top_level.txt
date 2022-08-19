@@ -1,0 +1,6 @@
+clone_latest_weekday_observations
+clone_observations
+config
+export_event_roster
+import_observations_from_file
+mage_api

@@ -1,8 +1,9 @@
-.idea/
-config.py
 __pycache__/
-.DS_Store
-*.py[cod]
+.idea/
+.spyproject/config/
+dist/
 observation_attachments/
 test_files/
-/.spyproject/config/
+config.py
+.DS_Store
+*.py[cod]
