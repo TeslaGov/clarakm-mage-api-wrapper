@@ -1,6 +1,6 @@
 # Mage API Wrapper
 
-[![PyPi Version](https://pypip.in/v/mage-python-api/badge.png)](https://crate.io/packages/mage-python-api/)
+[![PyPI version](https://badge.fury.io/py/mage-python-api.svg)](https://badge.fury.io/py/mage-python-api)
 
 ## Introduction
 This script can be imported and used in other python scripts to simplify automated operations relying on the MAGE API.
