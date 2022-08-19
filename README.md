@@ -1,5 +1,7 @@
 # Mage API Wrapper
 
+[![PyPI version](https://badge.fury.io/py/mage-python-api.svg)](https://badge.fury.io/py/mage-python-api)
+
 ## Introduction
 This script can be imported and used in other python scripts to simplify automated operations relying on the MAGE API.
 
@@ -9,7 +11,7 @@ Common examples include:
 * Copying observations from one event to another
 
 ## Setup
-1. Clone the repository from GitHub or install from PyPI: [![PyPI version](https://badge.fury.io/py/mage-python-api.svg)](https://badge.fury.io/py/mage-python-api)
+1. Clone the repository from GitHub or [install from PyPI](https://pypi.org/project/mage-python-api/).
 2. Add a `config.py` file to your project folder containing your credentials and MAGE server url. This file should not be uploaded to shared spaces.
 3. Import `mage_api` in your python script(s) to make use of the below functionality.
 
