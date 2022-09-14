@@ -5,6 +5,7 @@ import time
 import os
 import ast
 import mimetypes
+import copy
 import numpy as np
 import pandas as pd
 from datetime import datetime
@@ -302,7 +303,7 @@ class MageClient:
             attachments_mapping = self.get_observation_attachments(observation)
             attachments_mapping['observationId'] = cloned_observation['id']
             attachments_mapping['eventId'] = event_id
-            self.create_observation_attachments(attachments_mapping)
+            self.create_observation_attachments(cloned_observation, attachments_mapping)
 
         return cloned_observation
 
@@ -342,12 +343,13 @@ class MageClient:
 
                     # if forms, map new ids
                     if obs['properties']['forms']:
-                        try:
-                            origin_form_id = list(form_id_mapping['origin'].values()).index(obs['properties']['forms'][0]['formId'])
-                            target_form_name = list(form_id_mapping['origin'].keys())[origin_form_id]
-                            obs['properties']['forms'][0]['formId'] = form_id_mapping['target'][target_form_name]
-                        except IndexError:
-                            print('no form found, ingesting without form!')
+                        for form in obs['properties']['forms']:
+                            try:
+                                origin_form_id = list(form_id_mapping['origin'].values()).index(form['formId'])
+                                target_form_name = list(form_id_mapping['origin'].keys())[origin_form_id]
+                                form['formId'] = form_id_mapping['target'][target_form_name]
+                            except IndexError:
+                                print('no form found, ingesting without form!')
                     self.clone_observation(obs, target_event_id)
             return origin_observations
         else:
@@ -372,7 +374,9 @@ class MageClient:
                                }
 
         for attachment in observation['attachments']:
-            attachment_id, attachment_name,attachment_type = attachment['id'], attachment['name'], attachment['contentType']
+            attachment_id, attachment_name, attachment_type = attachment['id'], attachment['name'], attachment['contentType']
+            attachment_field_name, attachment_size, obs_form_id = attachment['fieldName'], attachment['size'], attachment['observationFormId']
+            attachment_form = next((sub for sub in observation['properties']['forms'] if sub['id'] == obs_form_id), None)
             attachment = self.make_request(f'/api/events/{event_id}/observations/{observation_id}/attachments/{attachment_id}',
                                            'get', download_content=True)
             # get file from bytes
@@ -388,7 +392,12 @@ class MageClient:
 
             # add file info to mapping dict for this observation, return for later re-uploading
             attachments_mapping['attachments'].append({'id': attachment_id,
-                                                       'name': destination_file_path})
+                                                       'name': attachment_name,
+                                                       'filePath': destination_file_path,
+                                                       'formId': attachment_form['formId'],
+                                                       'size': int(attachment_size),
+                                                       'contentType': attachment_type,
+                                                       'fieldName': attachment_field_name})
 
         return attachments_mapping
 
@@ -399,17 +408,58 @@ class MageClient:
     #     'eventId': event_id,
     #     'attachments': [attachment_paths]
     # }
-    def create_observation_attachments(self, attachments_mapping):
+    def create_observation_attachments(self, observation, attachments_mapping):
         observation_id, event_id = attachments_mapping['observationId'], attachments_mapping['eventId']
         attachments = attachments_mapping['attachments']
         # upload listed attachments
         responses_list = []
         for attachment in attachments:
-            new_attachment = self.make_request(f'/api/events/{event_id}/observations/{observation_id}/attachments',
-                                               'post', upload=attachment['name'])
+            added_attachment_id = self.add_observation_attachment(observation, attachment, observation_id, event_id)
+            new_attachment = self.make_request(f'/api/events/{event_id}/observations/{observation_id}/attachments/{added_attachment_id}',
+                                               'put', upload=attachment['filePath'])
             responses_list.append(new_attachment)
 
         return responses_list
+
+    # Adds basic structure for a new file attachment to an observation
+    # In 6.1.1 MAGE, attachments are now associated to a form which is attached to the observation
+    # This unfortunately removed the simple POST of a new attachment needs to be a PUT to update the observation with its base info
+    # followed by a PUT to add the attachment at it's ID, which is passed out of this method.
+    def add_observation_attachment(self, observation, attachment, new_observation_id, new_event_id):
+        attachment_form = next((sub for sub in observation['properties']['forms'] if sub['formId'] == attachment['formId']), None)
+        form_copy = copy.deepcopy(attachment_form)
+        form_index = observation['properties']['forms'].index(attachment_form)
+
+        # Structure needed to attach a new file in 6.1.1 MAGE.
+        new_attachment = {
+            attachment['fieldName']: [{
+                "name": attachment['name'],
+                "contentType": attachment['contentType'],
+                "size": attachment['size'],
+                "action": "add",
+                "file": {}
+            }]
+        }
+        form_copy.update(new_attachment)
+
+        keys = ['type', 'geometry']
+        observation_payload = {x: observation[x] for x in keys}
+        observation_payload['properties'] = copy.deepcopy(observation['properties'])
+        observation_payload['eventId']: int(new_event_id)
+        observation_payload['properties']['forms'][form_index] = form_copy
+
+        update_resp = self.make_request(f'/api/events/{new_event_id}/observations/{new_observation_id}',
+                                                'put', payload=observation_payload)
+        if update_resp.response_code == 400:
+            print(update_resp)
+
+        updated_observation = update_resp.response_body
+
+        # Assumes file names are unique, which they may not be, but we have no other way to check for the newest one.
+        added_attachment = list(filter(lambda attach_list: (attach_list['name'] == attachment['name']), updated_observation['attachments']))
+
+        return added_attachment[0]['id']
+
 
     # FORMS
 
